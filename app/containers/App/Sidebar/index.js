@@ -5,15 +5,13 @@ import { withData } from 'spunky'
 import { withRouter } from 'react-router-dom'
 
 import Sidebar from './Sidebar'
-import { addPendingTransaction } from '../../../actions/pendingTransactionActions'
+import { returnPendingTxCount } from '../../../actions/pendingActivityActions'
 
-const mapPendingTransactionsDataToProps = (
-  pendingTransactions: Array<PendingTransactions>,
-) => ({
-  pendingTransactionsCount: get(pendingTransactions, 'length', 0),
+const mapPendingTransactionsDataToProps = count => ({
+  pendingTransactionsCount: count,
 })
 
 export default compose(
   withRouter, // allow `NavLink` components to re-render when the window location changes
-  withData(addPendingTransaction, mapPendingTransactionsDataToProps),
+  withData(returnPendingTxCount, mapPendingTransactionsDataToProps),
 )(Sidebar)

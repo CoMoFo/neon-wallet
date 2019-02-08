@@ -10,6 +10,7 @@ import {
   findAndReturnTokenInfo,
   getImageBySymbol,
 } from '../util/findAndReturnTokenInfo'
+import { returnPendingTxCount } from './pendingActivityActions'
 
 export const ID = 'pendingTransactions'
 const STORAGE_KEY = 'pendingTransactions'
@@ -88,6 +89,7 @@ export const parseTransactionInfo = async (
   const sorted: Array<ParsedPendingTransaction> = parsedData.sort(
     sortedByBlockTime,
   )
+  console.log({ sorted })
   return sorted
 }
 
@@ -101,6 +103,7 @@ const setPendingTransactions = async (
 export const pruneConfirmedOrStaleTransaction = async (
   address: string,
   txId: string,
+  dispatch: Dispatch,
 ) => {
   const storage = await getPendingTransactions()
   if (Array.isArray(storage[address])) {
@@ -109,6 +112,13 @@ export const pruneConfirmedOrStaleTransaction = async (
       transaction => transaction.hash && !transaction.hash.includes(txId),
     )
   }
+  console.log(storage[address])
+  dispatch(
+    returnPendingTxCount.call({
+      pendingTxCount: storage[address].length,
+    }),
+  )
+
   await setPendingTransactions(storage)
 }
 
@@ -116,6 +126,7 @@ export const fetchTransactionInfo = async (
   transactions: PendingTransactions = {},
   address: string,
   net: string,
+  dispatch: Dispatch,
 ) => {
   if (Array.isArray(transactions[address]) && transactions[address].length) {
     let url = await getNode(net)
@@ -124,6 +135,8 @@ export const fetchTransactionInfo = async (
     }
     const client = Neon.create.rpcClient(url)
     const pendingTransactionInfo = []
+
+    console.log({ dispatch, transactions })
 
     for (const transaction of transactions[address]) {
       if (transaction) {
@@ -137,13 +150,21 @@ export const fetchTransactionInfo = async (
               }`,
             )
             if (e.message === INVALID_TX_ERROR_MESSAGE) {
-              await pruneConfirmedOrStaleTransaction(address, transaction.hash)
+              await pruneConfirmedOrStaleTransaction(
+                address,
+                transaction.hash,
+                dispatch,
+              )
             }
           })
 
         if (result) {
           if (result.confirmations >= MINIMUM_CONFIRMATIONS) {
-            await pruneConfirmedOrStaleTransaction(address, transaction.hash)
+            await pruneConfirmedOrStaleTransaction(
+              address,
+              transaction.hash,
+              dispatch,
+            )
           } else {
             pendingTransactionInfo.push({ ...result, ...transaction })
           }
@@ -151,6 +172,12 @@ export const fetchTransactionInfo = async (
       }
     }
 
+    dispatch(
+      returnPendingTxCount.call({
+        pendingTxCount: pendingTransactionInfo.length,
+      }),
+    )
+    console.log({ pendingTransactionInfo })
     return parseTransactionInfo(pendingTransactionInfo, net)
   }
   return []
@@ -166,7 +193,7 @@ export const getPendingTransactionsFromStorage = createActions(
 
 export const addPendingTransaction = createActions(
   ID,
-  ({ address, tx, net }) => async (): Promise<
+  ({ address, tx, net, dispatch }) => async (): Promise<
     Array<ParsedPendingTransaction>,
   > => {
     const transactions = await getPendingTransactions()
@@ -177,14 +204,15 @@ export const addPendingTransaction = createActions(
       transactions[address] = [tx]
     }
     await setPendingTransactions(transactions)
-    return fetchTransactionInfo(transactions, address, net)
+    return fetchTransactionInfo(transactions, address, net, dispatch)
   },
 )
 
 export const getPendingTransactionInfo = createActions(
   ID,
-  ({ address, net }) => async (): Promise<Array<Object>> => {
+  ({ address, net, dispatch }) => async (): Promise<Array<Object>> => {
     const transactions = await getPendingTransactions()
-    return fetchTransactionInfo(transactions, address, net)
+    console.log({ transactions })
+    return fetchTransactionInfo(transactions, address, net, dispatch)
   },
 )

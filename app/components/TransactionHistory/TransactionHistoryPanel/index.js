@@ -1,5 +1,7 @@
 // @flow
 import { compose } from 'recompose'
+import { bindActionCreators } from 'redux'
+import { connect } from 'react-redux'
 import { withData, withActions, withCall } from 'spunky'
 
 import TransactionHistoryPanel from './TransactionHistoryPanel'
@@ -9,10 +11,14 @@ import withProgressPanel from '../../../hocs/withProgressPanel'
 import withAuthData from '../../../hocs/withAuthData'
 import withNetworkData from '../../../hocs/withNetworkData'
 import withLoadingProp from '../../../hocs/withLoadingProp'
+import { returnPendingTxCount } from '../../../actions/pendingActivityActions'
 
 const mapTransactionsDataToProps = transactions => ({
   transactions,
 })
+
+const mapDispatchToProps = (dispatch: Function) =>
+  bindActionCreators({ returnPendingTxCount }, dispatch)
 
 const mapAccountActionsToProps = (actions, props) => ({
   handleFetchAdditionalTxData: () =>
@@ -28,6 +34,10 @@ const mapPendingTransactionInfoToProps = pendingTransactions => ({
 })
 
 export default compose(
+  connect(
+    null,
+    mapDispatchToProps,
+  ),
   withAuthData(),
   withNetworkData(),
   withProgressPanel(transactionHistoryActions, {

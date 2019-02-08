@@ -14,6 +14,7 @@ type Props = {
   handleFetchAdditionalTxData: () => any,
   pendingTransactions: Array<Object>,
   address: string,
+  dispatch: Dispatch,
 }
 
 export default class TransactionHistory extends React.Component<Props> {
@@ -23,8 +24,13 @@ export default class TransactionHistory extends React.Component<Props> {
   }
 
   render() {
-    const { className, transactions } = this.props
+    const { className, transactions, pendingTransactions } = this.props
     const filteredPendingTransactions = this.pruneConfirmedTransactionsFromPending()
+    console.log({
+      filteredPendingTransactions,
+      transactions,
+      pendingTransactions,
+    })
     this.pruneReturnedTransactionsFromStorage()
     return (
       <Panel
@@ -51,12 +57,17 @@ export default class TransactionHistory extends React.Component<Props> {
   }
 
   async pruneReturnedTransactionsFromStorage() {
-    const { transactions, pendingTransactions, address } = this.props
+    const { transactions, pendingTransactions, address, dispatch } = this.props
     const toBePurged = intersectionBy(transactions, pendingTransactions, 'txId')
+    console.log({ toBePurged, dispatch })
     // eslint-disable-next-line
     for (const transaction of toBePurged) {
       // eslint-disable-next-line
-      await pruneConfirmedOrStaleTransaction(address, transaction.txid)
+      await pruneConfirmedOrStaleTransaction(
+        address,
+        transaction.txid,
+        dispatch,
+      )
     }
   }
 

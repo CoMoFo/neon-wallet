@@ -209,6 +209,7 @@ export const sendTransaction = ({
             sendEntries,
           },
           net,
+          dispatch,
         }),
       )
     }
